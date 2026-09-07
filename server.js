@@ -5,6 +5,11 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const timetableRoutes = require('./routes/timetable');
 const notesRoutes = require('./routes/notes');
+const eventsRoutes = require('./routes/events');
+const clubsRoutes = require('./routes/clubs');
+const lostFoundRoutes = require('./routes/lost-found');
+const internshipsRoutes = require('./routes/internships');
+const placementRoutes = require('./routes/placement');
 
 const app = express();
 
@@ -19,6 +24,11 @@ app.get('/health', (req, res) => {
 app.use('/auth', authRoutes);
 app.use('/timetable', timetableRoutes);
 app.use('/notes', notesRoutes);
+app.use('/events', eventsRoutes);
+app.use('/clubs', clubsRoutes);
+app.use('/lost-found', lostFoundRoutes);
+app.use('/internships', internshipsRoutes);
+app.use('/placement', placementRoutes);
 
 // Fallback error handler
 app.use((err, req, res, next) => {
