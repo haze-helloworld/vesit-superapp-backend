@@ -10,6 +10,8 @@ const clubsRoutes = require('./routes/clubs');
 const lostFoundRoutes = require('./routes/lost-found');
 const internshipsRoutes = require('./routes/internships');
 const placementRoutes = require('./routes/placement');
+const resourcesRoutes = require('./routes/resources');
+const borrowRequestsRoutes = require('./routes/borrow_requests');
 
 const app = express();
 
@@ -29,6 +31,8 @@ app.use('/clubs', clubsRoutes);
 app.use('/lost-found', lostFoundRoutes);
 app.use('/internships', internshipsRoutes);
 app.use('/placement', placementRoutes);
+app.use('/resources', resourcesRoutes);
+app.use('/borrow-requests', borrowRequestsRoutes);
 
 // Fallback error handler
 app.use((err, req, res, next) => {
