@@ -632,12 +632,13 @@ Creates a placement drive entry.
 ### Resources (Peer-to-Peer Sharing)
 
 #### `GET /resources`
-Browses peer-to-peer shareable resources.
+Browses peer-to-peer shareable resources within the authenticated student's college.
 - **Auth**: `Bearer <token>`
 - **Query Params**:
-  - `category` (e.g., `"Electronics"`, `"Books"`, `"Lab Equipment"`)
+  - `category` (e.g., `"Electronics"`, `"Calculators"`, `"Books"`, `"Lab Equipment"`)
   - `listing_type` (`"lend"` or `"donate"`)
-  - `status` (defaults to `"AVAILABLE"`, or `"REQUESTED"`, `"APPROVED"`)
+  - `status` (defaults to `"AVAILABLE"`, or pass specific status like `"REQUESTED"`, or `"all"`)
+  - `search` / `query` (matches text against resource title)
 - **Response `200 OK`**:
 ```json
 {
@@ -652,16 +653,57 @@ Browses peer-to-peer shareable resources.
       "listing_type": "lend",
       "status": "AVAILABLE",
       "image_urls": ["https://res.cloudinary.com/.../arduino.jpg"],
-      "created_at": "2026-09-12T12:00:00Z"
+      "created_at": "2026-09-12T12:00:00Z",
+      "owner": {
+        "id": "uuid",
+        "name": "Jane Doe",
+        "email": "jane.doe@ves.ac.in",
+        "trust_score": 15
+      }
     }
   ]
 }
 ```
 
+#### `GET /resources/:id`
+Retrieves detailed information for a specific resource by ID.
+- **Auth**: `Bearer <token>`
+- **Response `200 OK`**:
+```json
+{
+  "resource": {
+    "id": "uuid",
+    "college_id": "uuid",
+    "owner_id": "uuid",
+    "title": "Scientific Calculator FX-991EX",
+    "category": "Calculators",
+    "condition": "Excellent",
+    "listing_type": "lend",
+    "status": "AVAILABLE",
+    "image_urls": [
+      "https://res.cloudinary.com/.../calc_front.jpg"
+    ],
+    "created_at": "2026-09-12T12:00:00Z",
+    "owner": {
+      "id": "uuid",
+      "name": "Alex Smith",
+      "email": "alex.smith@ves.ac.in",
+      "trust_score": 25
+    }
+  }
+}
+```
+
 #### `POST /resources`
-List an item to lend or donate.
-- **Auth**: `Bearer <token>` (`student` role)
-- **Body (`application/json`)**:
+Creates a peer-to-peer resource listing. Supports both `multipart/form-data` with direct image uploads streamed to Cloudinary, and `application/json` with existing image URLs.
+- **Auth**: `Bearer <token>` (`student` or `admin`)
+- **Option A: `multipart/form-data`**:
+  - `title`: `string` (required)
+  - `category`: `string` (required)
+  - `listing_type`: `"lend"` | `"donate"` (required)
+  - `condition`: `string` (optional, e.g. `"Like New"`, `"Good"`)
+  - `images`: File array (optional, up to 5 images, max 20MB each)
+- **Option B: `application/json`**:
 ```json
 {
   "title": "Scientific Calculator FX-991EX",
@@ -674,18 +716,47 @@ List an item to lend or donate.
 - **Response `201 Created`**:
 ```json
 {
+  "resource": {
+    "id": "uuid",
+    "college_id": "uuid",
+    "owner_id": "uuid",
+    "title": "Scientific Calculator FX-991EX",
+    "category": "Calculators",
+    "condition": "Good",
+    "listing_type": "lend",
+    "status": "AVAILABLE",
+    "image_urls": ["https://res.cloudinary.com/.../image.jpg"],
+    "created_at": "2026-09-12T12:00:00Z"
+  }
+}
+```
+*(Note: If `listing_type` is `"donate"`, a corresponding record in `donations` table is automatically registered).*
+
+#### `PATCH /resources/:id`
+Updates resource details (owner or admin only). Supports updating text fields and appending uploaded images.
+- **Auth**: `Bearer <token>` (Listing owner or `admin`)
+- **Body (`application/json` or `multipart/form-data`)**:
+```json
+{
+  "title": "Scientific Calculator FX-991EX (Updated)",
+  "condition": "Like New"
+}
+```
+- **Response `200 OK`**:
+```json
+{
   "resource": { ... }
 }
 ```
 
 #### `DELETE /resources/:id`
-Removes a resource listing.
-- **Auth**: `Bearer <token>` (`admin` only)
+Deletes a resource listing. Only allowed for the listing owner or an admin, and only if there are no active/pending borrow requests.
+- **Auth**: `Bearer <token>` (Listing owner or `admin`)
 - **Response `200 OK`**:
 ```json
 {
   "success": true,
-  "message": "Resource removed"
+  "message": "Resource removed successfully"
 }
 ```
 
@@ -694,14 +765,14 @@ Removes a resource listing.
 ### Borrow Requests
 
 #### `POST /borrow-requests`
-Creates a request to borrow an available resource (with optimistic locking to prevent race conditions).
+Creates a request to borrow an available resource using optimistic locking.
 - **Auth**: `Bearer <token>` (`student` role)
 - **Body (`application/json`)**:
 ```json
 {
   "resource_id": "uuid",
-  "start_date": "2026-09-15",
-  "end_date": "2026-09-22"
+  "start_date": "2026-10-01",
+  "end_date": "2026-10-10"
 }
 ```
 - **Response `201 Created`**:
@@ -711,10 +782,15 @@ Creates a request to borrow an available resource (with optimistic locking to pr
     "id": "uuid",
     "resource_id": "uuid",
     "borrower_id": "uuid",
-    "start_date": "2026-09-15",
-    "end_date": "2026-09-22",
+    "start_date": "2026-10-01",
+    "end_date": "2026-10-10",
     "status": "REQUESTED",
-    "created_at": "2026-09-12T12:00:00Z"
+    "created_at": "2026-09-12T12:00:00Z",
+    "resource": {
+      "id": "uuid",
+      "title": "Scientific Calculator FX-991EX",
+      "category": "Calculators"
+    }
   },
   "resource": {
     "id": "uuid",
@@ -723,10 +799,10 @@ Creates a request to borrow an available resource (with optimistic locking to pr
 }
 ```
 
-#### `GET /borrow-requests`
-Retrieves requests made by the user OR requests received for resources owned by the user.
+#### `GET /borrow-requests/my-requests`
+Retrieves all borrow requests initiated by the authenticated user.
 - **Auth**: `Bearer <token>`
-- **Query Params**: `status` (optional: `"REQUESTED"`, `"APPROVED"`, `"REJECTED"`)
+- **Query Params**: `status` (optional, e.g. `?status=REQUESTED`)
 - **Response `200 OK`**:
 ```json
 {
@@ -735,29 +811,60 @@ Retrieves requests made by the user OR requests received for resources owned by 
       "id": "uuid",
       "resource_id": "uuid",
       "borrower_id": "uuid",
-      "start_date": "2026-09-15",
-      "end_date": "2026-09-22",
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-10",
       "status": "REQUESTED",
-      "resources": {
-        "title": "Arduino Uno Rev3 + Sensor Kit",
-        "category": "Electronics",
-        "college_id": "uuid"
+      "resource": {
+        "id": "uuid",
+        "title": "Scientific Calculator FX-991EX",
+        "category": "Calculators",
+        "image_urls": ["..."],
+        "owner": {
+          "id": "uuid",
+          "name": "Jane Doe",
+          "email": "jane.doe@ves.ac.in",
+          "trust_score": 15
+        }
       }
     }
   ]
 }
 ```
 
-#### `PATCH /borrow-requests/:id`
-Approves or rejects a borrow request.
-- **Auth**: `Bearer <token>` (Resource owner only)
-- **Body (`application/json`)**:
+#### `GET /borrow-requests/received`
+Retrieves all incoming borrow requests for items listed by the authenticated user.
+- **Auth**: `Bearer <token>`
+- **Query Params**: `status` (optional)
+- **Response `200 OK`**:
 ```json
 {
-  "status": "APPROVED"
+  "requests": [
+    {
+      "id": "uuid",
+      "resource_id": "uuid",
+      "borrower_id": "uuid",
+      "start_date": "2026-10-01",
+      "end_date": "2026-10-10",
+      "status": "REQUESTED",
+      "borrower": {
+        "id": "uuid",
+        "name": "Bob Taylor",
+        "email": "bob.taylor@ves.ac.in",
+        "trust_score": 8
+      },
+      "resource": {
+        "id": "uuid",
+        "title": "Scientific Calculator FX-991EX",
+        "category": "Calculators"
+      }
+    }
+  ]
 }
 ```
-*(or `"REJECTED"`)*
+
+#### `PATCH /borrow-requests/:id/approve`
+Approves a borrow request (Resource Owner only). Transitions request status to `APPROVED`, resource status to `APPROVED`, and auto-rejects other competing pending requests for that item.
+- **Auth**: `Bearer <token>` (Resource owner)
 - **Response `200 OK`**:
 ```json
 {
@@ -768,4 +875,126 @@ Approves or rejects a borrow request.
   "resource_status": "APPROVED"
 }
 ```
-*(If rejected, resource status returns to `"AVAILABLE"`).*
+
+#### `PATCH /borrow-requests/:id/reject`
+Rejects a borrow request (Resource Owner only). Transitions request to `REJECTED` and resets resource status to `AVAILABLE`.
+- **Auth**: `Bearer <token>` (Resource owner)
+- **Response `200 OK`**:
+```json
+{
+  "request": {
+    "id": "uuid",
+    "status": "REJECTED"
+  },
+  "resource_status": "AVAILABLE"
+}
+```
+
+#### `PATCH /borrow-requests/:id/return`
+Marks a borrowed item as returned. Can be invoked by borrower or owner. Transitions request status to `RETURNED`, resets resource status to `AVAILABLE`, and automatically awards +2 trust score to the borrower.
+- **Auth**: `Bearer <token>` (Borrower, Resource Owner, or `admin`)
+- **Response `200 OK`**:
+```json
+{
+  "success": true,
+  "message": "Resource marked as returned and is now AVAILABLE",
+  "request": {
+    "id": "uuid",
+    "status": "RETURNED"
+  },
+  "resource_status": "AVAILABLE"
+}
+```
+
+---
+
+### Donations & Admin Verification
+
+#### `POST /donations`
+Registers a resource for college-wide donation.
+- **Auth**: `Bearer <token>`
+- **Body (`application/json`)**:
+```json
+{
+  "resource_id": "uuid"
+}
+```
+- **Response `201 Created`**:
+```json
+{
+  "donation": {
+    "id": "uuid",
+    "college_id": "uuid",
+    "donor_id": "uuid",
+    "resource_id": "uuid",
+    "verified": false,
+    "created_at": "2026-09-12T12:00:00Z"
+  }
+}
+```
+
+#### `GET /donations`
+Lists college donations.
+- **Auth**: `Bearer <token>`
+- **Query Params**: `verified` (`true` | `false`), `donor_id`
+- **Response `200 OK`**:
+```json
+{
+  "donations": [
+    {
+      "id": "uuid",
+      "college_id": "uuid",
+      "donor_id": "uuid",
+      "resource_id": "uuid",
+      "verified": false,
+      "donor": {
+        "id": "uuid",
+        "name": "Jane Doe",
+        "email": "jane.doe@ves.ac.in",
+        "trust_score": 15
+      },
+      "resource": {
+        "id": "uuid",
+        "title": "Engineering Mechanics Textbook",
+        "category": "Books",
+        "status": "AVAILABLE"
+      }
+    }
+  ]
+}
+```
+
+#### `GET /donations/my-donations`
+Returns donation history for the authenticated user.
+- **Auth**: `Bearer <token>`
+- **Response `200 OK`**:
+```json
+{
+  "donations": [ ... ]
+}
+```
+
+#### `PATCH /donations/:id/verify`
+Verifies a donation (Admin only). Sets `verified = true`, assigns `verified_by = admin_id`, marks the resource status as `COMPLETED`, and awards +10 trust score points to the donor.
+- **Auth**: `Bearer <token>` (`admin` role)
+- **Response `200 OK`**:
+```json
+{
+  "success": true,
+  "message": "Donation verified successfully. Donor awarded +10 trust score.",
+  "donation": {
+    "id": "uuid",
+    "verified": true,
+    "verified_by": "admin-uuid"
+  },
+  "donor_updated_trust_score": 25
+}
+```
+
+---
+
+## Postman Collection
+
+A complete Postman Collection is included at [`postman_collection.json`](./postman_collection.json).
+Import it into Postman to test all endpoints with pre-configured requests, environment variables, and authentication flows.
+

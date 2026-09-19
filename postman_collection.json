@@ -1,0 +1,769 @@
+{
+  "info": {
+    "_postman_id": "9b1e7c84-18f4-4a25-b4c6-e9182379d401",
+    "name": "CampusOne Backend API",
+    "description": "Comprehensive Postman collection for CampusOne Multi-Tenant College Superapp backend APIs.\nIncludes Auth, Timetable, Notes, Events, Clubs, Lost & Found, Internships, Placements, Resources (Marketplace), Borrow Requests (Lifecycle), and Donations (Admin Verification).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "resource_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "borrow_request_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "donation_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 - Authentication",
+      "item": [
+        {
+          "name": "Signup Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Student User\",\n  \"email\": \"student@ves.ac.in\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/signup",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "signup"]
+            }
+          }
+        },
+        {
+          "name": "Login Student",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('student_token', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"student@ves.ac.in\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Login Admin",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('admin_token', jsonData.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ves.ac.in\",\n  \"password\": \"adminpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Profile (Me)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Resources Marketplace",
+      "item": [
+        {
+          "name": "List Resources (Available)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/resources?status=AVAILABLE&category=&listing_type=&search=",
+              "host": ["{{base_url}}"],
+              "path": ["resources"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "AVAILABLE"
+                },
+                {
+                  "key": "category",
+                  "value": ""
+                },
+                {
+                  "key": "listing_type",
+                  "value": ""
+                },
+                {
+                  "key": "search",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Resource Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/resources/{{resource_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["resources", "{{resource_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Resource (JSON / URLs)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.resource && jsonData.resource.id) {",
+                  "    pm.collectionVariables.set('resource_id', jsonData.resource.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Scientific Calculator FX-991EX\",\n  \"category\": \"Calculators\",\n  \"condition\": \"Like New\",\n  \"listing_type\": \"lend\",\n  \"image_urls\": [\n    \"https://res.cloudinary.com/demo/image/upload/sample.jpg\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/resources",
+              "host": ["{{base_url}}"],
+              "path": ["resources"]
+            }
+          }
+        },
+        {
+          "name": "Create Resource (Multipart with Images to Cloudinary)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "title",
+                  "value": "Arduino Uno Rev3 Starter Kit",
+                  "type": "text"
+                },
+                {
+                  "key": "category",
+                  "value": "Electronics",
+                  "type": "text"
+                },
+                {
+                  "key": "condition",
+                  "value": "Excellent",
+                  "type": "text"
+                },
+                {
+                  "key": "listing_type",
+                  "value": "lend",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/resources",
+              "host": ["{{base_url}}"],
+              "path": ["resources"]
+            }
+          }
+        },
+        {
+          "name": "Update Resource (Owner or Admin)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Scientific Calculator FX-991EX (Updated)\",\n  \"condition\": \"Used - Excellent\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/resources/{{resource_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["resources", "{{resource_id}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Resource (Owner or Admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/resources/{{resource_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["resources", "{{resource_id}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Borrow Requests",
+      "item": [
+        {
+          "name": "Create Borrow Request",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.request && jsonData.request.id) {",
+                  "    pm.collectionVariables.set('borrow_request_id', jsonData.request.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource_id\": \"{{resource_id}}\",\n  \"start_date\": \"2026-10-01\",\n  \"end_date\": \"2026-10-10\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/borrow-requests",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests"]
+            }
+          }
+        },
+        {
+          "name": "My Borrow Requests (Sent)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/borrow-requests/my-requests",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests", "my-requests"]
+            }
+          }
+        },
+        {
+          "name": "Received Borrow Requests (for my items)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/borrow-requests/received",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests", "received"]
+            }
+          }
+        },
+        {
+          "name": "List All Relevant Borrow Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/borrow-requests?status=",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Approve Borrow Request (Owner Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"APPROVED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/borrow-requests/{{borrow_request_id}}/approve",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests", "{{borrow_request_id}}", "approve"]
+            }
+          }
+        },
+        {
+          "name": "Reject Borrow Request (Owner Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/borrow-requests/{{borrow_request_id}}/reject",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests", "{{borrow_request_id}}", "reject"]
+            }
+          }
+        },
+        {
+          "name": "Return Borrowed Resource (Borrower or Owner)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/borrow-requests/{{borrow_request_id}}/return",
+              "host": ["{{base_url}}"],
+              "path": ["borrow-requests", "{{borrow_request_id}}", "return"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Donations & Admin Verification",
+      "item": [
+        {
+          "name": "Create Donation Listing",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.donation && jsonData.donation.id) {",
+                  "    pm.collectionVariables.set('donation_id', jsonData.donation.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource_id\": \"{{resource_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/donations",
+              "host": ["{{base_url}}"],
+              "path": ["donations"]
+            }
+          }
+        },
+        {
+          "name": "List College Donations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/donations?verified=",
+              "host": ["{{base_url}}"],
+              "path": ["donations"],
+              "query": [
+                {
+                  "key": "verified",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "My Donations History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/donations/my-donations",
+              "host": ["{{base_url}}"],
+              "path": ["donations", "my-donations"]
+            }
+          }
+        },
+        {
+          "name": "Verify Donation (Admin Only)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/donations/{{donation_id}}/verify",
+              "host": ["{{base_url}}"],
+              "path": ["donations", "{{donation_id}}", "verify"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Notes Repository",
+      "item": [
+        {
+          "name": "Upload Note",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "subject",
+                  "value": "Database Management Systems",
+                  "type": "text"
+                },
+                {
+                  "key": "year",
+                  "value": "TE",
+                  "type": "text"
+                },
+                {
+                  "key": "topic",
+                  "value": "SQL Query Optimization and Indexing",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/notes",
+              "host": ["{{base_url}}"],
+              "path": ["notes"]
+            }
+          }
+        },
+        {
+          "name": "List Notes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notes?subject=&year=&topic=",
+              "host": ["{{base_url}}"],
+              "path": ["notes"],
+              "query": [
+                {
+                  "key": "subject",
+                  "value": ""
+                },
+                {
+                  "key": "year",
+                  "value": ""
+                },
+                {
+                  "key": "topic",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Lost and Found",
+      "item": [
+        {
+          "name": "List Lost and Found Items",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/lost-found?type=",
+              "host": ["{{base_url}}"],
+              "path": ["lost-found"],
+              "query": [
+                {
+                  "key": "type",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Lost/Found Item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "type",
+                  "value": "lost",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Black laptop charger left in Room 402",
+                  "type": "text"
+                },
+                {
+                  "key": "photo",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/lost-found",
+              "host": ["{{base_url}}"],
+              "path": ["lost-found"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
