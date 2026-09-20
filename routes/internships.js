@@ -94,4 +94,42 @@ router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   }
 });
 
+// PATCH /internships/:id
+router.patch('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const internshipId = req.params.id;
+    const { title, company, department, year_eligible, deadline, apply_link } = req.body;
+
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (company !== undefined) updates.company = company;
+    if (department !== undefined) updates.department = department;
+    if (year_eligible !== undefined) updates.year_eligible = year_eligible;
+    if (deadline !== undefined) updates.deadline = deadline;
+    if (apply_link !== undefined) updates.apply_link = apply_link;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const { data, error } = await supabase
+      .from('internships')
+      .update(updates)
+      .eq('id', internshipId)
+      .eq('college_id', req.user.collegeId)
+      .select();
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Internship not found' });
+    }
+
+    res.json({ internship: data[0] });
+  } catch (err) {
+    console.error('update internship error', err);
+    res.status(500).json({ error: 'Could not update internship' });
+  }
+});
+
 module.exports = router;

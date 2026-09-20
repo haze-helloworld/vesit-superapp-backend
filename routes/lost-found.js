@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const supabase = require('../services/supabase');
 const { uploadToCloudinary } = require('../services/cloudinary');
-const { requireAuth } = require('../middleware/auth');
+const { requireAuth, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -116,6 +116,31 @@ router.patch('/:id/resolve', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('resolve lost-found error', err);
     res.status(500).json({ error: 'Could not resolve listing' });
+  }
+});
+
+// DELETE /lost-found/:id (Moderation)
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const listingId = req.params.id;
+
+    const { data, error } = await supabase
+      .from('lost_found')
+      .delete()
+      .eq('id', listingId)
+      .eq('college_id', req.user.collegeId)
+      .select();
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Listing not found' });
+    }
+
+    res.json({ success: true, message: 'Listing deleted successfully' });
+  } catch (err) {
+    console.error('delete lost-found error', err);
+    res.status(500).json({ error: 'Could not delete listing' });
   }
 });
 

@@ -129,4 +129,66 @@ router.get('/:id/rsvp-count', requireAuth, async (req, res) => {
   }
 });
 
+// PATCH /events/:id
+router.patch('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const { title, description, date, time, venue } = req.body;
+
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (description !== undefined) updates.description = description;
+    if (date !== undefined) updates.date = date;
+    if (time !== undefined) updates.time = time;
+    if (venue !== undefined) updates.venue = venue;
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    const { data, error } = await supabase
+      .from('events')
+      .update(updates)
+      .eq('id', eventId)
+      .eq('college_id', req.user.collegeId)
+      .select();
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.json({ event: data[0] });
+  } catch (err) {
+    console.error('update event error', err);
+    res.status(500).json({ error: 'Could not update event' });
+  }
+});
+
+// DELETE /events/:id
+router.delete('/:id', requireAuth, requireRole('admin'), async (req, res) => {
+  try {
+    const eventId = req.params.id;
+
+    const { data, error } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', eventId)
+      .eq('college_id', req.user.collegeId)
+      .select();
+
+    if (error) throw error;
+
+    if (!data || data.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    res.json({ success: true, message: 'Event deleted successfully' });
+  } catch (err) {
+    console.error('delete event error', err);
+    res.status(500).json({ error: 'Could not delete event' });
+  }
+});
+
 module.exports = router;

@@ -298,6 +298,25 @@ create policy "placement_isolation" on placement for all
   with check (college_id = current_college_id());
 
 -- ------------------------------------------------------------
+-- 10. ANNOUNCEMENTS
+-- ------------------------------------------------------------
+create table if not exists announcements (
+  id uuid primary key default gen_random_uuid(),
+  college_id uuid not null references colleges(id) on delete cascade,
+  title text not null,
+  body text not null,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_announcements_college on announcements(college_id);
+alter table announcements enable row level security;
+
+drop policy if exists "announcements_isolation" on announcements;
+create policy "announcements_isolation" on announcements for all
+  using (college_id = current_college_id())
+  with check (college_id = current_college_id());
+
+-- ------------------------------------------------------------
 insert into colleges (name, email_domain)
 values ('VESIT', 'vesit.ves.ac.in')
 on conflict (email_domain) do nothing;
